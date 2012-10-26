@@ -82,4 +82,7 @@ a range is a map with keys :start and :end. Values are anything which supports <
       (-> (clojure.set/intersection reqset resset)
           count
           (/ nrres)))))
+
+;; (defn scale-match
+;;   "request is 
         
