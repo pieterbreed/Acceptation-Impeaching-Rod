@@ -1,25 +1,38 @@
 (ns impeaching-rod.rules
-  "holds matching rules. each rule takes a documented number of arguments and returns a value. return values are between 0.0 and 1.0 with 0.0 meaning does not match at all and 1.0 meaning matches perfectly"
+  "holds matching rules builders. each builder takes at least two functions and optionally a builder parameter. The two functions (reqf resf) represent functions that query values from items that are being compare. The optional parameter is a parameter to the builder and makes sense based on the build. Each function returns a function that when given two items to compare (req res), knows how to extract the atributes from the two items (reqf req) and (resf res) and returns a score to indicate their match"
   (:use [impeaching-rod.common]))
 
-(defn simple-match
-  "matches when (= req res), ie, simple value-based equality"
-  [req res]
-  (if (= req res)
-    1
-    0))
+(defn simple-matcher
+  "matches when (= (reqf req) (resf res)), ie, simple value-based equality
 
-(defn string-match
-  "matches 1.0 when req is in res, otherwise 0.0"
-  ([req res]
-     (if (= req
-            (re-find (re-pattern req)
-                     res))
-       1
-       0)))
+eg (def x {:age 25}
+   (def y {:query-age 25})
+   (def matcher (simple-matcher :query-age :age))
+   (matcher y x) -> 1"
+  [reqf resf]
+  (fn [req res]
+    (if (= (reqf req)
+           (resf res))
+      1
+      0)))
 
-(defn -range-match-ranges [r1 r2]
+(defn string-matcher
+  "matches 1 when (reqs req) (a string) is in (resf res), otherwise 0"
+  [reqf resf]
+  (fn [req res]
+    (let [req* (reqf req)
+          res* (resf res)]
+      (if (= req*
+             (re-find (re-pattern req*)
+                      res*))
+        1
+        0))))
+
+(defn -measure-range-match
   "matches the percentage of how much of the range of r1 is in the range of r2"
+  [r1 r2]
+  {:pre [(every? range? [r1 r2])]}
+  
   (let [{r1start :start, r1end :end} r1
         {r2start :start, r2end :end} r2]
     (cond
@@ -37,7 +50,7 @@
                 inside (- e s)]
             (/ inside r1size)))))
 
-(defn range-match
+(defn range-matcher
   "matches:
 - a point to a range
   - if a is in range, then 1.0, else 0.0
@@ -46,40 +59,44 @@
 - two ranges
   - if req is wholly in res, then 1.0, else a the percentage of req in res
 
-a range is a map with keys :start and :end. Values are anything which supports < and > against the values"
-  [req res]
-  (cond
-   ;; two ranges
-   (and (map? req)(map? res)) (-range-match-ranges res req)
+a range is a map with keys :start and :end. Values are anything which supports <, > and - operators against the values"
+  [reqf resf]
+  (fn [req res]
+    (let [req* (reqf req)
+          res* (resf res)]
+      (cond
+       ;; two ranges
+       (and (range? req*)(range? res*)) (-measure-range-match res* req*)
 
-   ;; point and range
-   (map? req) (if (and (< res (:end req))
-                       (> res (:start req)))
-                1 0)
+       ;; point and range
+       (range? req*) (if (and (< res* (:end req*))
+                              (> res* (:start req*)))
+                       1 0)
 
-   ;; range and point
-   (map? res) (if (and (< req (:end res))
-                       (> req (:start res)))
-                1 0)
+       ;; range and point
+       (map? res*) (if (and (< req* (:end res*))
+                            (> req* (:start res*)))
+                     1 0)
 
-   :else 0))
+       :else 0))))
 
-(defn set-match
-  "creates sets out of the two seqs req and res. The result is the proportion of items in res that is also in req"
-  [req res]
-  (let [toset #(if (set? %)
-                 %
-                 (if (coll? %)
-                   (set %)
-                   #{}))
-        reqset (toset req)
-        resset (toset res)
-        nrres (count resset)]
-    (if (= 0 nrres)
-      0
-      (-> (clojure.set/intersection reqset resset)
-          count
-          (/ nrres)))))
+(defn set-matcher
+  "creates sets out of the two collections (reqf req) and (resf res). The result is the proportion of items in res* that is also in req*"
+  [reqf resf]
+  (fn [req res]
+    (let [toset #(if (set? %)
+                   %
+                   (if (coll? %)
+                     (set %)
+                     #{}))
+          req* (toset (reqf req))
+          res* (toset (resf res))
+          nrres (count res*)]
+      (if (= 0 nrres)
+        0
+        (-> (clojure.set/intersection req* res*)
+            count
+            (/ nrres))))))
 
 
 
@@ -124,10 +141,10 @@ eg -11 -> 95
 
 and so on. In this example, req will be specified as:
 
-[{:x -10 :y 95}
- {:x 5   :y 30}
- {:x 40  :y 30}
- {:x 40  :y 50}]"
+;[{:x -10 :y 95}
+; {:x 5   :y 30}
+; {:x 40  :y 30}
+; {:x 40  :y 50}]"
   [req]
   {:pre [(and (vector? req)
               (every? point? req))]}
@@ -156,7 +173,9 @@ and so on. In this example, req will be specified as:
 
 (defn scale-match
   "matches the res value against a function (req). req is specified as a table with value -> match entries. Once the table is sorted on value, interpolation is used to compute the function values inbetween the table points"
-  []
-  nil)
-  
+  [req res]
+  ((-build-scale-function req) res))
+
+
+
         
