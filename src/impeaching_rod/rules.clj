@@ -83,6 +83,26 @@ a range is a map with keys :start and :end. Values are anything which supports <
           count
           (/ nrres)))))
 
-;; (defn scale-match
-;;   "request is 
+(defn -build-scale-function
+  "returns a function that will use interpolation to map input -> output:
+
+_________________
+                 |\\
+                 | \\
+                 |  \\         ______________
+                 |   \\       /|                     
+                 |    \\_____/ |                         
+                 |    |       |                      
+-----------------|----|-------|--------------
+                
+
+"
+  []
+  nil)
+
+(defn scale-match
+  "matches the res value against a function (req). req is specified as a table with value -> match entries. Once the table is sorted on value, interpolation is used to compute the function values inbetween the table points"
+  []
+  nil)
+  
         
