@@ -66,3 +66,20 @@ a range is a map with keys :start and :end. Values are anything which supports <
 
    :else 0))
 
+(defn set-match
+  "creates sets out of the two seqs req and res. The result is the proportion of items in res that is also in req"
+  [req res]
+  (let [toset #(if (set? %)
+                 %
+                 (if (coll? %)
+                   (set %)
+                   #{}))
+        reqset (toset req)
+        resset (toset res)
+        nrres (count resset)]
+    (if (= 0 nrres)
+      0
+      (-> (clojure.set/intersection reqset resset)
+          count
+          (/ nrres)))))
+        

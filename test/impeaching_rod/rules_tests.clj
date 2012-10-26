@@ -44,7 +44,17 @@
          0 4 {:start 1 :end 3} 
          1 2 {:start 1 :end 3} )))
          
-                                                       
+(deftest set-match-test
+  (testing "how much sets overlap"
+            (are [exp req res] (= exp
+                                  (set-match req res))
+                 0 [1 2 3] [4 5 6]
+                 1 [1 2 3] [1 2 3]
+                 1 [1 2 3] [1 2]
+                 0 [1 2 3] []
+                 0 [] []
+                 2/3 [1 2] [1 2 3]
+                 )))
 
 
 (run-all-tests #"impeaching-rod.rules-tests")
