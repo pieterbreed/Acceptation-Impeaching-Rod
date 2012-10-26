@@ -180,6 +180,23 @@ and so on. In this example, req will be specified as:
             dif (abs (- req* res*))]
         (match-fn dif)))))
 
+(defn build-matrix-matching-fn
+  "takes a table (map of maps) and gives a fn that can look up a value from the table, provided that the param keys are values in the maps"
+  [tbl]
+  (fn [reqkey reskey]
+    (-> tbl
+        reqkey
+        reskey)))
+
+(defn matrix-rule-matcher
+  "matches the value by looking up the match value from a table"
+  [reqf resf tbl]
+  (let [matcher (build-matrix-matching-fn tbl)]
+    (fn [req res]
+      (let [req* (reqf req)
+            res* (resf res)]
+        (matcher req* res*)))))
+  
 
 
         
