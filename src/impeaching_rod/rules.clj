@@ -1,8 +1,6 @@
 (ns impeaching-rod.rules
-  "holds matching rules.
-
-each rule takes a documented number of arguments and returns a value. return values are between 0.0 and 1.0 with 0.0 meaning does not match at all and 1.0 meaning matches perfectly"
-  )
+  "holds matching rules. each rule takes a documented number of arguments and returns a value. return values are between 0.0 and 1.0 with 0.0 meaning does not match at all and 1.0 meaning matches perfectly"
+  (:use [impeaching-rod.common]))
 
 (defn simple-match
   "matches when (= req res), ie, simple value-based equality"
@@ -83,22 +81,78 @@ a range is a map with keys :start and :end. Values are anything which supports <
           count
           (/ nrres)))))
 
+
+
+(defn -build-linear-function
+  "creates a function that gives the y value for a line that goes through p1 and p2 in 2d space. p1 and p2 are maps that have :x and :y keys"
+  [p1 p2]
+  {:pre [(and (point? p1)
+              (point? p2))]
+   :post [(fn? %)]}
+  (let [{x1 :x y1 :y} p1
+        {x2 :x y2 :y} p2]
+    (fn [x]
+      {:pre [(and (< x x2)
+                  (< x1 x))]
+       :post [(and (< % (max y1 y2))
+                   (< (min y1 y2) %))]}
+      (+ y1
+         (* (- x x1)
+            (/ (- y2 y1)
+               (- x2 x1)))))))
+
 (defn -build-scale-function
   "returns a function that will use interpolation to map input -> output:
 
-_________________
+95 ______________
                  |\\
                  | \\
-                 |  \\         ______________
+                 |  \\         ______________ 50
                  |   \\       /|                     
-                 |    \\_____/ |                         
-                 |    |       |                      
------------------|----|-------|--------------
-                
+                 |    \\_30__/ |                         
+                 |    |     |  |                      
+-----------------|----|-----|-|--------------
+                -10   5    40  50           
 
-"
-  []
-  nil)
+eg -11 -> 95
+   -10 -> 95
+  -999 -> 95
+  -2.5 -> 62.5
+     5 -> 30
+    50 -> 50
+ 10000 -> 50
+
+and so on. In this example, req will be specified as:
+
+[{:x -10 :y 95}
+ {:x 5   :y 30}
+ {:x 40  :y 30}
+ {:x 40  :y 50}]"
+  [req]
+  {:pre [(and (vector? req)
+              (every? point? req))]}
+  (let [reqs (sort-by :x req)
+        ranges (-> (for [i (range (dec (count reqs)))]
+                     (let [p1 (nth req i)
+                           p2 (nth req (inc i))]
+                     [(:x p1) (:x p2) (-build-linear-function p1 p2)]))
+                   vec)]
+    (fn [x]
+      (let [frst (-> reqs first)
+            lst (-> reqs last)]
+        (if (<= x (:x frst)) ; smaller than smallest x
+          (:y frst)
+          (let [fnd (some #(if (= x (:x %)) %) reqs)] ; exactly as one of the x's
+            (if fnd
+              (:y fnd)
+              (if (>= x (:x lst)) ; larger than biggest x
+                (:y lst)
+                (-> (filter #(and (> x (first %))
+                                  (< x (second %)))
+                            ranges)
+                     first
+                     (nth 2)
+                     (apply x []))))))))))
 
 (defn scale-match
   "matches the res value against a function (req). req is specified as a table with value -> match entries. Once the table is sorted on value, interpolation is used to compute the function values inbetween the table points"

@@ -56,6 +56,34 @@
                  2/3 [1 2] [1 2 3]
                  )))
 
+(deftest linear-fn-test
+  (testing "whether linear interpolation between two points work"
+    (are [exp x p1 p2] (= exp
+                          ((-build-linear-function p1 p2) x))
+         2 2 {:x 0 :y 0} {:x 5 :y 5}
+         5 1 {:x 0 :y 6} {:x 2 :y 4}
+         )))
+
+(deftest scale-function-test
+  (testing "whether the scaling function works like expecetd"
+    (are [exp x] (= exp
+                    ((-build-scale-function [{:x -10 :y 95}
+                                             {:x 5   :y 30}
+                                             {:x 40  :y 30}
+                                             {:x 50  :y 50}])
+                     x))
+
+         95 -11
+         95 -10
+         95 -999
+         62.5 -2.5
+         30 5
+         50 50
+         50 10000
+
+         )))
+                                            
+
 
 (run-all-tests #"impeaching-rod.rules-tests")
 
