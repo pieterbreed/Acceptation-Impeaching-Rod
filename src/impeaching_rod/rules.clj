@@ -99,7 +99,6 @@ a range is a map with keys :start and :end. Values are anything which supports <
             (/ nrres))))))
 
 
-
 (defn -build-linear-function
   "creates a function that gives the y value for a line that goes through p1 and p2 in 2d space. p1 and p2 are maps that have :x and :y keys"
   [p1 p2]
@@ -118,7 +117,7 @@ a range is a map with keys :start and :end. Values are anything which supports <
             (/ (- y2 y1)
                (- x2 x1)))))))
 
-(defn -build-scale-function
+(defn -build-gliding-scale-function
   "returns a function that will use interpolation to map input -> output:
 
 95 ______________
@@ -171,10 +170,15 @@ and so on. In this example, req will be specified as:
                      (nth 2)
                      (apply x []))))))))))
 
-(defn scale-match
-  "matches the res value against a function (req). req is specified as a table with value -> match entries. Once the table is sorted on value, interpolation is used to compute the function values inbetween the table points"
-  [req res]
-  ((-build-scale-function req) res))
+(defn gliding-scale-matcher
+  "matches the difference between (reqf req) and (resf res) and uses that as a lookup into gliding scale function that is specified with the par parameter. par is specified as a table with value -> match entries. Once the table is sorted on value, interpolation is used to compute the function values inbetween the table points"
+  [reqf resf par]
+  (let [match-fn (-build-scale-function par)]
+    (fn [req res]
+      (let [req* (reqf req)
+            res* (resf res)
+            dif (abs (- req* res*))]
+        (match-fn dif)))))
 
 
 

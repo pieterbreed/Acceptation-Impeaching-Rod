@@ -15,6 +15,13 @@
        (contains? x :start)
        (contains? x :end)))
 
+(defn abs
+  "absolute value"
+  [x]
+  (if (neg? x)
+    (* -1 x)
+    x))
+
 (defn debug-pprint [x]
   (clojure.pprint/pprint x)
   x)
