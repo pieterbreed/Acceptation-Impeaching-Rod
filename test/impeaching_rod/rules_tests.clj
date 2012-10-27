@@ -115,7 +115,23 @@
            1 :b :0
            ))))
                                             
+(deftest weighte-table-test
+  (testing "whether weighted table set matchers work"
+    (let [match (weighted-set-matcher :v :v
+                                      {:c++ {:java 1/2 :c# 1/2 :c++ 1 :haskell 0}
+                                       :java {:java 1 :c# 1/2 :c++ 1/2 :haskell 0}
+                                       :c# {:java 1/2 :c# 1 :c++ 1/2 :haskell 0}
+                                       :haskell {:java 0 :c# 0 :c++ 0 :haskell 1}})]
+      (are [exp req res] (= exp
+                            (match {:v req}
+                                   {:v res}))
 
+           1 #{:c++} #{:c++}
+           1 #{:java} #{:java}
+           1 #{:java :c#} #{:c++}
+           0 #{:java :c# :c++} #{:haskell}
+
+           ))))
 
 (run-all-tests #"impeaching-rod.rules-tests")
 

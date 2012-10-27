@@ -84,12 +84,7 @@ a range is a map with keys :start and :end. Values are anything which supports <
   "creates sets out of the two collections (reqf req) and (resf res). The result is the proportion of items in res* that is also in req*"
   [reqf resf]
   (fn [req res]
-    (let [toset #(if (set? %)
-                   %
-                   (if (coll? %)
-                     (set %)
-                     #{}))
-          req* (toset (reqf req))
+    (let [req* (toset (reqf req))
           res* (toset (resf res))
           nrres (count res*)]
       (if (= 0 nrres)
@@ -180,25 +175,47 @@ and so on. In this example, req will be specified as:
             dif (- req* res*)]
         (match-fn dif)))))
 
-(defn build-matrix-matching-fn
+(defn -build-matrix-matching-fn
   "takes a table (map of maps) and gives a fn that can look up a value from the table, provided that the param keys are values in the maps"
-  [reqf resf tbl]
+  [tbl]
   (fn [req res]
-    (let [req* (reqf req)
-          res* (resf res)]
-      (-> tbl
-          req*
-          res*))))
+    (-> tbl
+        req
+        res)))
 
 (defn matrix-rule-matcher
   "matches the value by looking up the match value from a table"
   [reqf resf tbl]
-  (let [matcher (build-matrix-matching-fn tbl)]
+  (let [matcher (-build-matrix-matching-fn tbl)]
     (fn [req res]
       (let [req* (reqf req)
             res* (resf res)]
         (matcher req* res*)))))
-  
+
+(defn weighted-set-matcher
+  "matches two sets against one another. Takes a table that defines weights of how the matching elemenents match against each other. Adds up all of the weights of the matching items and returns a value no bigger than 1. eg:
+
+; tbl: {:c++     {:java 1/2 :c# 1/2 :c++ 1/2}
+;       :java    {:java 1   :c# 1   :c++ 1/2}
+;       :c#      {:java 1/2 :c# 1   :c++ 1/2}
+;       :haskell {:java 0   :c# 0   :c++ 0  }}
+;
+; will match 1 on #{:java} #{:java}
+; also       1 on #{:c++ :c#} #{:java}
+; also       1 on #{:c++ :c#} #{:c++}
+: but        0 on #{:haskell} #{:java}"
+  [reqf resf tbl]
+  (let [tbl-match (-build-matrix-matching-fn tbl)]
+    (fn [req res]
+      (let [req* (toset (reqf req))
+            res* (toset (resf res))]
+        (->> (for [rq req* rs res*] (tbl-match rq rs))
+             (apply +)
+             max)))))
 
 
+             
+            
+        
+        
         

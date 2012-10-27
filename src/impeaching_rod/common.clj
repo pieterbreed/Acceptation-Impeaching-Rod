@@ -22,6 +22,14 @@
     (* -1 x)
     x))
 
+(defn toset
+  "transforms a collection into a set of items"
+  [x]
+  (if (set? x) x
+      (if (coll? x) (set x)
+          #{})))
+        
+
 (defn debug-pprint [x]
   (clojure.pprint/pprint x)
   x)
