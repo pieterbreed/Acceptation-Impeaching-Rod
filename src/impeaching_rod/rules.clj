@@ -23,23 +23,15 @@ eg (def x {:age 25}
    (def y {:query-age 25})
    (def matcher (simple-matcher :query-age :age))
    (matcher y x) -> 1"
+  #(= %1 %2))
+
+(defmatcher string-matcher
+  "gives (fn [req res] ...) so that it matches when req is contained in res"
   #(if (= %1
           (re-find (re-pattern %1)
                    %2))
      1 0))
   
-(defn string-matcher
-  "matches 1 when (reqs req) (a string) is in (resf res), otherwise 0"
-  [reqf resf]
-  (fn [req res]
-    (let [req* (reqf req)
-          res* (resf res)]
-      (if (= req*
-             (re-find (re-pattern req*)
-                      res*))
-        1
-        0))))
-
 (defn -measure-range-match
   "matches the percentage of how much of the range of r1 is in the range of r2"
   [r1 r2]
