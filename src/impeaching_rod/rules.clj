@@ -213,6 +213,45 @@ and so on. In this example, req will be specified as:
              (apply +)
              max)))))
 
+(defn weighted-matcher-matcher
+  "allows the ability to combine matchers based on relative weightings. takes parameters in groups of 2 (ie will error out of there are not a multiple of 2 nr of parameters) For every group:
+
+- the first is the matcher (simple-matcher :name :name)
+- the second is the relative weight, as a number
+
+; eg, to match for someone named 'John' with age exactly '30', with age being 9 times more important the name
+; (weighted-matcher-matcher (string-matcher :name :name) 1
+;                           (simple-matcher :age :age) 9)"
+  [& matchers]
+  {:pre [(= 0 (mod (count matchers) 2))]}
+  (let [parts (partition 2 matchers)
+        totalweight (apply + (map second parts))
+
+        ;; takes one group of the matchers
+        ;; and makes a function that can be invoked with the
+        ;; req and the res, but also combines that result
+        ;; with the relative weight of that matcher
+        compute-match-fn (fn [part]
+                           (let [matcher (first part)
+                                 weight (second part)]
+                             (fn [req res]
+                               (let [match (matcher req res)
+                                     weight-part (/ weight totalweight)
+                                     result (* match weight-part)]
+                                 result))))
+
+        match-fns (map compute-match-fn parts)]
+    
+    (fn [req res]
+      (->> match-fns
+           (map #(apply % [req res]))
+           (apply +)))))
+
+
+                     
+
+  
+
 
              
             

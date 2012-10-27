@@ -133,5 +133,33 @@
 
            ))))
 
+(deftest weighted-matcher-matcher-test
+  (testing "that the weighted matcher matcher can accurately combine matchers"
+    (let [match (weighted-matcher-matcher
+                 (string-matcher :name :name) 1
+                 (simple-matcher :age :age) 9)]
+    (are [exp req res] (= exp
+                          (match req res))
+         1/10
+         {:name "pieter"
+          :age 32}
+         {:name "pieter"
+          :age 30}
+
+         9/10
+         {:name "john"
+          :age 32}
+         {:name "pieter"
+          :age 32}
+
+         1
+         {:name "pieter"
+          :age 30}
+         {:name "pieter"
+          :age 30}
+         
+         ))))
+         
+
 (run-all-tests #"impeaching-rod.rules-tests")
 
