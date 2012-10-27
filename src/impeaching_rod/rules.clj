@@ -54,7 +54,7 @@ eg (def x {:age 25}
                 inside (- e s)]
             (/ inside r1size)))))
 
-(defn range-matcher
+(defmatcher range-matcher
   "matches:
 - a point to a range
   - if a is in range, then 1.0, else 0.0
@@ -64,25 +64,21 @@ eg (def x {:age 25}
   - if req is wholly in res, then 1.0, else a the percentage of req in res
 
 a range is a map with keys :start and :end. Values are anything which supports <, > and - operators against the values"
-  [reqf resf]
-  (fn [req res]
-    (let [req* (reqf req)
-          res* (resf res)]
-      (cond
-       ;; two ranges
-       (and (range? req*)(range? res*)) (-measure-range-match res* req*)
+  #(cond
+    ;; two ranges
+    (and (range? %1)(range? %2)) (-measure-range-match %2 %1)
 
-       ;; point and range
-       (range? req*) (if (and (< res* (:end req*))
-                              (> res* (:start req*)))
-                       1 0)
+    ;; point and range
+    (range? %1) (if (and (< %2 (:end %1))
+                         (> %2 (:start %1)))
+                  1 0)
 
-       ;; range and point
-       (map? res*) (if (and (< req* (:end res*))
-                            (> req* (:start res*)))
-                     1 0)
+    ;; range and point
+    (map? %2) (if (and (< %1 (:end %2))
+                       (> %1 (:start %2)))
+                1 0)
 
-       :else 0))))
+    :else 0))
 
 (defn set-matcher
   "creates sets out of the two collections (reqf req) and (resf res). The result is the proportion of items in res* that is also in req*"
