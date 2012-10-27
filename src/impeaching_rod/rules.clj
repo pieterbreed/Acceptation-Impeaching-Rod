@@ -177,7 +177,7 @@ and so on. In this example, req will be specified as:
     (fn [req res]
       (let [req* (reqf req)
             res* (resf res)
-            dif (abs (- req* res*))]
+            dif (- req* res*)]
         (match-fn dif)))))
 
 (defn build-matrix-matching-fn
