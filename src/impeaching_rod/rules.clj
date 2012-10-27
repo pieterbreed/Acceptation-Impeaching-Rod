@@ -2,25 +2,32 @@
   "holds matching rules builders. each builder takes at least two functions and optionally a builder parameter. The two functions (reqf resf) represent functions that query values from items that are being compare. The optional parameter is a parameter to the builder and makes sense based on the build. Each function returns a function that when given two items to compare (req res), knows how to extract the atributes from the two items (reqf req) and (resf res) and returns a score to indicate their match"
   (:use [impeaching-rod.common]))
 
-;; (defmacro defmatcher
-;;   "defines a matcher with the expected, standard matcher behaviour"
-;;   [name & args]
-;;   (let [[name attrs] (
+(defmacro defmatcher
+   "defines a matcher with the expected, standard matcher behaviour"
+  [name & args]
+  (let [[name args] (name-with-attributes name args)
+        [matching-fn & rest] args]
+    `(do (defn ~name [reqf# resf#]
+           (fn [req# res#]
+             (let [req*# (reqf# req#)
+                   res*# (resf# res#)]
+               (~matching-fn req*# res*#))))
+         (alter-meta! (var ~name) assoc :arglists '([~(symbol "reqf") ~(symbol "resf")]))
+         )))
+(alter-meta! #'defmatcher assoc :arglists '([name doc-string? attr-map? matching-fn]))
 
-(defn simple-matcher
-  "matches when (= (reqf req) (resf res)), ie, simple value-based equality
+(defmatcher simple-matcher
+  "gives (fn [req res]) so that it matches when (= (reqf req) (resf res)), ie, simple value-based equality
 
 eg (def x {:age 25}
    (def y {:query-age 25})
    (def matcher (simple-matcher :query-age :age))
    (matcher y x) -> 1"
-  [reqf resf]
-  (fn [req res]
-    (if (= (reqf req)
-           (resf res))
-      1
-      0)))
-
+  #(if (= %1
+          (re-find (re-pattern %1)
+                   %2))
+     1 0))
+  
 (defn string-matcher
   "matches 1 when (reqs req) (a string) is in (resf res), otherwise 0"
   [reqf resf]
