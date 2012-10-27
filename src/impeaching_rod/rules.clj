@@ -2,6 +2,11 @@
   "holds matching rules builders. each builder takes at least two functions and optionally a builder parameter. The two functions (reqf resf) represent functions that query values from items that are being compare. The optional parameter is a parameter to the builder and makes sense based on the build. Each function returns a function that when given two items to compare (req res), knows how to extract the atributes from the two items (reqf req) and (resf res) and returns a score to indicate their match"
   (:use [impeaching-rod.common]))
 
+;; (defmacro defmatcher
+;;   "defines a matcher with the expected, standard matcher behaviour"
+;;   [name & args]
+;;   (let [[name attrs] (
+
 (defn simple-matcher
   "matches when (= (reqf req) (resf res)), ie, simple value-based equality
 
@@ -168,7 +173,7 @@ and so on. In this example, req will be specified as:
 (defn gliding-scale-matcher
   "matches the difference between (reqf req) and (resf res) and uses that as a lookup into gliding scale function that is specified with the par parameter. par is specified as a table with value -> match entries. Once the table is sorted on value, interpolation is used to compute the function values inbetween the table points"
   [reqf resf par]
-  (let [match-fn (-build-scale-function par)]
+  (let [match-fn (-build-gliding-scale-function par)]
     (fn [req res]
       (let [req* (reqf req)
             res* (resf res)

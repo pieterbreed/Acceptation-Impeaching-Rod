@@ -102,12 +102,10 @@
 
 (deftest matric-matcher-test
   (testing "whether the matrix matcher can work properly"
-    (let [match (build-matrix-matching-fn :v :v
-                                          {:a {:1 1 :0 0}
-                                           :b {:1 0 :0 1}})]
+    (let [match (-build-matrix-matching-fn {:a {:1 1 :0 0}
+                                            :b {:1 0 :0 1}})]
       (are [exp req res] (= exp
-                            (match {:v req}
-                                   {:v res}))
+                            (match req res))
 
            1 :a :1
            0 :a :0
