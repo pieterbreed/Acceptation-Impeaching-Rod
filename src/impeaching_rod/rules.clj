@@ -3,18 +3,42 @@
   (:use [impeaching-rod.common]))
 
 (defmacro defmatcher
-   "defines a matcher with the expected, standard matcher behaviour"
+  "defines a matcher with the expected, standard matcher behaviour
+
+takes a name, optional docstring, optional attribute map and 3 required parameters:
+1. a vector of extra parameters (over and above reqf & reqs which all matchers take)
+2. a vector of binding forms, which may make use of the extra params. These binging forms will create symbols in the scope of the third argument...
+3. a function takeing only exactly 2 parameters (req and res) which returns the value of the match between the [req]ust and the [res]ult records
+
+eg
+; (defmatcher simple-matcher
+; \"docstring abc 123\"
+;  [] ;; taking no extra parameters
+;  [] ;; no extra binding forms
+;  #(= %1 %2)) ;; anonymous function that takes two parameters (those are the values of the rquest and result records that are being compared) and does simple equality testing against them.
+; (doc simple-matcher) --> \"docstring abc 123\"
+
+eg2
+; (defmatcher both-is-n-matcher
+;  [n] ;; taking a value n, which both properties must be equal to
+;  [compfn %(= n %1 %2)] ;; defines a function called compfn, takes 2 parameters, compares both against the value given in n and determines if they are all the same
+;  #(compfn %1 %2)) ;; anonymous function that takes two parameters (those are the values of the request and result records and applies it against the compfn function and returns the result of that"
   [name & args]
   (let [[name args] (name-with-attributes name args)
-        [matching-fn & rest] args]
-    `(do (defn ~name [reqf# resf#]
-           (fn [req# res#]
-             (let [req*# (reqf# req#)
-                   res*# (resf# res#)]
-               (~matching-fn req*# res*#))))
-         (alter-meta! (var ~name) assoc :arglists '([~(symbol "reqf") ~(symbol "resf")]))
-         )))
-(alter-meta! #'defmatcher assoc :arglists '([name doc-string? attr-map? matching-fn]))
+        [pars lets matching-fn & rest] args]
+        
+    `(do (defn ~name [reqf# resf# ~@pars]
+           (let [~@lets]
+             (fn [req# res#]
+               (let [req*# (reqf# req#)
+                     res*# (resf# res#)]
+                 (~matching-fn req*# res*#)))))
+         (alter-meta! (var ~name) assoc :arglists
+                      '([~(symbol "reqf") ~(symbol "resf")
+                         ~@pars]))
+         ~name)))
+(alter-meta! #'defmatcher assoc :arglists
+             '([name doc-string? attr-map? [pars*] [lets*] matching-fn]))
 
 (defmatcher simple-matcher
   "gives (fn [req res]) so that it matches when (= (reqf req) (resf res)), ie, simple value-based equality
@@ -23,10 +47,12 @@ eg (def x {:age 25}
    (def y {:query-age 25})
    (def matcher (simple-matcher :query-age :age))
    (matcher y x) -> 1"
+  [] []
   #(= %1 %2))
 
 (defmatcher string-matcher
   "gives (fn [req res] ...) so that it matches when req is contained in res"
+  [] []
   #(if (= %1
           (re-find (re-pattern %1)
                    %2))
@@ -64,6 +90,7 @@ eg (def x {:age 25}
   - if req is wholly in res, then 1.0, else a the percentage of req in res
 
 a range is a map with keys :start and :end. Values are anything which supports <, > and - operators against the values"
+  [] []
   #(cond
     ;; two ranges
     (and (range? %1)(range? %2)) (-measure-range-match %2 %1)
@@ -80,18 +107,15 @@ a range is a map with keys :start and :end. Values are anything which supports <
 
     :else 0))
 
-(defn set-matcher
-  "creates sets out of the two collections (reqf req) and (resf res). The result is the proportion of items in res* that is also in req*"
-  [reqf resf]
-  (fn [req res]
-    (let [req* (toset (reqf req))
-          res* (toset (resf res))
-          nrres (count res*)]
-      (if (= 0 nrres)
-        0
-        (-> (clojure.set/intersection req* res*)
-            count
-            (/ nrres))))))
+(defmatcher set-matcher
+  "creates sets out of the two collections (reqf req) and (resf res). The result is the proportion of items in %2 that is also in %1"
+  [] []
+  #(let [nrres (count %2)]
+     (if (= 0 nrres)
+       0
+       (-> (clojure.set/intersection %1 %2)
+           count
+           (/ nrres)))))
 
 
 (defn -build-linear-function
@@ -139,21 +163,21 @@ and so on. In this example, req will be specified as:
 ; {:x 5   :y 30}
 ; {:x 40  :y 30}
 ; {:x 40  :y 50}]"
-  [req]
-  {:pre [(and (vector? req)
-              (every? point? req))]}
-  (let [reqs (sort-by :x req)
-        ranges (-> (for [i (range (dec (count reqs)))]
-                     (let [p1 (nth req i)
-                           p2 (nth req (inc i))]
+  [ranges]
+  {:pre [(and (vector? ranges)
+              (every? point? ranges))]}
+  (let [rangess (sort-by :x ranges)
+        ranges (-> (for [i (range (dec (count rangess)))]
+                     (let [p1 (nth ranges i)
+                           p2 (nth ranges (inc i))]
                      [(:x p1) (:x p2) (-build-linear-function p1 p2)]))
                    vec)]
     (fn [x]
-      (let [frst (-> reqs first)
-            lst (-> reqs last)]
+      (let [frst (-> rangess first)
+            lst (-> rangess last)]
         (if (<= x (:x frst)) ; smaller than smallest x
           (:y frst)
-          (let [fnd (some #(if (= x (:x %)) %) reqs)] ; exactly as one of the x's
+          (let [fnd (some #(if (= x (:x %)) %) rangess)] ; exactly as one of the x's
             (if fnd
               (:y fnd)
               (if (>= x (:x lst)) ; larger than biggest x
@@ -165,15 +189,12 @@ and so on. In this example, req will be specified as:
                      (nth 2)
                      (apply x []))))))))))
 
-(defn gliding-scale-matcher
+(defmatcher gliding-scale-matcher
   "matches the difference between (reqf req) and (resf res) and uses that as a lookup into gliding scale function that is specified with the par parameter. par is specified as a table with value -> match entries. Once the table is sorted on value, interpolation is used to compute the function values inbetween the table points"
-  [reqf resf par]
-  (let [match-fn (-build-gliding-scale-function par)]
-    (fn [req res]
-      (let [req* (reqf req)
-            res* (resf res)
-            dif (- req* res*)]
-        (match-fn dif)))))
+  [par]
+  [match-fn (-build-gliding-scale-function par)]
+
+  #(match-fn (- %1 %2)))
 
 (defn -build-matrix-matching-fn
   "takes a table (map of maps) and gives a fn that can look up a value from the table, provided that the param keys are values in the maps"
