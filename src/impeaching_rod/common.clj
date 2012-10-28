@@ -1,6 +1,12 @@
 (ns impeaching-rod.common
   "common utility functions used in the impeach rod")
 
+(def BATCH-SIZE
+  "This is the batch size as used by request. The documents in a corpus will be
+split into separate collections of this size and the request will be run concurrently
+on these separate document collections."
+  1000)
+
 (defn point?
   "tests a map x whether it has keys :x and :y"
   [x]
@@ -28,6 +34,20 @@
   (if (set? x) x
       (if (coll? x) (set x)
           #{})))
+
+(defn split-into-job-coll
+  "takes a collection and partitions it into sub collections so that the sequences can be processed in batches"
+  [size coll]
+  (->> coll
+       (partition size size nil)
+       (seque 10)))
+
+(defn map-in-jobs
+  "exactly like map, but splits the collection into sub collections, and run the fn in map mode on the sub collections"
+  [fn col]
+  (let [result (->> (split-into-job-coll BATCH-SIZE col)
+                    (map #(map fn %)))]
+    (for [x result y x] y))) ; fancy flatten-once
 
 (defn name-with-attributes
   "To be used in macro definitions.

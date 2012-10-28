@@ -3,12 +3,6 @@
   (:use [impeaching-rod.common]
         [clojure.set]))
 
-(def BATCH-SIZE
-  "This is the batch size as used by request. The documents in a corpus will be
-split into separate collections of this size and the request will be run concurrently
-on these separate document collections."
-  1000)
-
 (defn create-corpus [name]
   "Creates a corpus with a specific name and returns it. This function does not have a side-effect.
 
@@ -20,12 +14,15 @@ The corpus consists of:
    :name name
    :documents #{}})
 
-(defn add-document [corpus doc]
-  "Adds document doc to the corpus list of documents."
+(defn add-documents [corpus docs]
+  "Adds all of docs into the corpus"
   (assoc corpus
     :documents
-    (conj (:documents corpus)
-          doc)))
+    (apply conj (:documents corpus) docs)))
+
+(defn add-document [corpus doc]
+  "Adds document doc to the corpus list of documents."
+  (add-documents corpus [doc]))
 
 (defn remove-document-where [corpus p]
   "Removes documents where predicate p is true"
@@ -52,6 +49,4 @@ the app must terminate early"
           (match-seq [seq]
             (map #(match-document request %) seq))]
     (->> (:documents corpus)
-         (partition BATCH-SIZE BATCH-SIZE nil)
-         (pmap match-seq)
-         flatten)))
+         (map-in-jobs match-document))))
