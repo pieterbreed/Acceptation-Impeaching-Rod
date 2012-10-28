@@ -237,7 +237,8 @@ and so on. In this example, req will be specified as:
 - the second is the relative weight, as a number
 
 ; eg, to match for someone named 'John' with age exactly '30', with age being 9 times more important the name
-; (weighted-matcher-matcher (string-matcher :name :name) 1
+; (weighted-matcher-matcher identity identity ; don't forget these
+;                           (string-matcher :name :name) 1
 ;                           (simple-matcher :age :age) 9)"
   [& matchers]
   [parts (partition 2 matchers)
