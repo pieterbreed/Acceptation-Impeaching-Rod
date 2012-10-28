@@ -10,15 +10,18 @@ The corpus consists of:
 - a name
 - a _set_ of documents. Adding a document to the corpus that is there already is a no-op
 "
-  {:type :corpus
-   :name name
-   :documents #{}})
+  (atom
+   {:type :corpus
+    :name name
+    :documents #{}}))
 
 (defn add-documents [corpus docs]
   "Adds all of docs into the corpus"
-  (assoc corpus
-    :documents
-    (apply conj (:documents corpus) docs)))
+  (swap! corpus
+         (fn [cval]
+           (assoc cval
+             :documents
+             (apply conj (:documents cval) docs)))))
 
 (defn add-document [corpus doc]
   "Adds document doc to the corpus list of documents."
@@ -26,16 +29,20 @@ The corpus consists of:
 
 (defn remove-document-where [corpus p]
   "Removes documents where predicate p is true"
-  (let [d (:documents corpus)]
-    (assoc corpus
-      :documents
-      (difference d (set (filter p d))))))
+  (swap! corpus
+         (fn [cval]
+           (let [d (:documents cval)]
+             (assoc cval
+               :documents
+               (difference d (set (filter p d))))))))
     
 (defn remove-document [corpus doc]
   "removes a specific item from the document set"
-  (assoc corpus
-    :documents
-    (difference (:documents corpus) #{doc})))
+  (swap! corpus
+         (fn [cval]
+           (assoc cval
+             :documents
+             (difference (:documents cval) #{doc})))))
   
 (defn request [corpus matcher request]
   "Returns a lazy sequence of result documents along with the scores.
@@ -48,5 +55,5 @@ the app must terminate early"
              :score (matcher request res)})
           (match-seq [seq]
             (map #(match-document request %) seq))]
-    (->> (:documents corpus)
+    (->> (:documents @corpus)
          (map-in-jobs match-document))))

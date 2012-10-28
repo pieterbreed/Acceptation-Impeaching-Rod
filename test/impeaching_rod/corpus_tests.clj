@@ -13,13 +13,14 @@
 (defn- make-test-corpus
   "makes a test corpus by calling make-many-result-docs on the passed fn"
   [n createfn]
-  (-> (create-corpus "test")
-      (add-documents (make-many-result-docs n createfn))))
+  (let [c (create-corpus "test")]
+    (add-documents c (make-many-result-docs n createfn))
+    c))
   
 (deftest simple-request-test
   (testing "small nr of simple documents, doing simple matching"
     (let [createfn #(hash-map :name (str "name" %) :age %)
-          corpus (make-test-corpus 100 createfn)
+          corpus (make-test-corpus 11 createfn)
           matcher (simple-matcher :age :age)
           find-result #(->> (request corpus matcher %)
                             (sort-by :score)
@@ -31,15 +32,6 @@
            (createfn 10) {:age 10}
            (createfn 1) {:age 1}
            ))))
-
-           
-
-
-
-
-
-
-
 
 
 (run-all-tests #"impeaching-rod.corpus-tests")
