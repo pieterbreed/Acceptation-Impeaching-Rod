@@ -113,7 +113,7 @@
            1 :b :0
            ))))
                                             
-(deftest weighte-table-test
+(deftest weighted-table-test
   (testing "whether weighted table set matchers work"
     (let [match (weighted-set-matcher :v :v
                                       {:c++ {:java 1/2 :c# 1/2 :c++ 1 :haskell 0}

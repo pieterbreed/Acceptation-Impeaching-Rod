@@ -25,7 +25,7 @@ eg2
 ;  #(compfn %1 %2)) ;; anonymous function that takes two parameters (those are the values of the request and result records and applies it against the compfn function and returns the result of that"
   [name & args]
   (let [[name args] (name-with-attributes name args)
-        [pars lets matching-fn & rest] args]
+        [pars lets matching-fn rest] args]
         
     `(do (defn ~name [reqf# resf# ~@pars]
            (let [~@lets]
@@ -48,7 +48,8 @@ eg (def x {:age 25}
    (def matcher (simple-matcher :query-age :age))
    (matcher y x) -> 1"
   [] []
-  #(= %1 %2))
+  #(if (= %1 %2)
+     1 0))
 
 (defmatcher string-matcher
   "gives (fn [req res] ...) so that it matches when req is contained in res"
@@ -113,7 +114,8 @@ a range is a map with keys :start and :end. Values are anything which supports <
   #(let [nrres (count %2)]
      (if (= 0 nrres)
        0
-       (-> (clojure.set/intersection %1 %2)
+       (-> (clojure.set/intersection (toset %1)
+                                     (toset %2))
            count
            (/ nrres)))))
 
@@ -239,33 +241,27 @@ and so on. In this example, req will be specified as:
 ;                           (simple-matcher :age :age) 9)"
   [& matchers]
   [parts (partition 2 matchers)
-        totalweight (apply + (map second parts))
+   _ (debug-pprint parts)
+   totalweight (apply + (map second parts))
+   _ (debug-pprint totalweight)
 
-        ;; takes one group of the matchers
-        ;; and makes a function that can be invoked with the
-        ;; req and the res, but also combines that result
-        ;; with the relative weight of that matcher
-        compute-match-fn (fn [part]
-                           (let [matcher (first part)
-                                 weight (second part)]
-                             (fn [req res]
-                               (let [match (matcher req res)
-                                     weight-part (/ weight totalweight)
-                                     result (* match weight-part)]
-                                 result))))
+   ;; takes one group of the matchers
+   ;; and makes a function that can be invoked with the
+   ;; req and the res, but also combines that result
+   ;; with the relative weight of that matcher
+   compute-match-fn (fn [part]
+                      (let [matcher (first part)
+                            weight (second part)]
+                        (fn [req res]
+                          (let [match (matcher req res)
+                                weight-part (/ weight totalweight)
+                                result (* match weight-part)]
+                            result))))
 
-        match-fns (map compute-match-fn parts)]
+   match-fns (map compute-match-fn parts)]
   (fn [req res]
     (->> match-fns
         (map #(apply % [req res]))
         (apply +))))
 
 
-  
-
-
-             
-            
-        
-        
-        
