@@ -25,14 +25,14 @@ eg2
 ;  #(compfn %1 %2)) ;; anonymous function that takes two parameters (those are the values of the request and result records and applies it against the compfn function and returns the result of that"
   [name & args]
   (let [[name args] (name-with-attributes name args)
-        [pars lets matching-fn rest] args]
-        
+        [pars lets & rest] args]
     `(do (defn ~name [reqf# resf# ~@pars]
            (let [~@lets]
              (fn [req# res#]
                (let [req*# (reqf# req#)
                      res*# (resf# res#)]
-                 (~matching-fn req*# res*#)))))
+                 (-> ~@rest
+                     (apply [req*# res*#]))))))
          (alter-meta! (var ~name) assoc :arglists
                       '([~(symbol "reqf") ~(symbol "resf")
                          ~@pars]))
@@ -241,10 +241,8 @@ and so on. In this example, req will be specified as:
 ;                           (simple-matcher :age :age) 9)"
   [& matchers]
   [parts (partition 2 matchers)
-   _ (debug-pprint parts)
    totalweight (apply + (map second parts))
-   _ (debug-pprint totalweight)
-
+   
    ;; takes one group of the matchers
    ;; and makes a function that can be invoked with the
    ;; req and the res, but also combines that result

@@ -134,6 +134,7 @@
 (deftest weighted-matcher-matcher-test
   (testing "that the weighted matcher matcher can accurately combine matchers"
     (let [match (weighted-matcher-matcher
+                 identity identity
                  (string-matcher :name :name) 1
                  (simple-matcher :age :age) 9)]
     (are [exp req res] (= exp
