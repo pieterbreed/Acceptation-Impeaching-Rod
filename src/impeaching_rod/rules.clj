@@ -204,16 +204,13 @@ and so on. In this example, req will be specified as:
         req
         res)))
 
-(defn matrix-rule-matcher
-  "matches the value by looking up the match value from a table"
-  [reqf resf tbl]
-  (let [matcher (-build-matrix-matching-fn tbl)]
-    (fn [req res]
-      (let [req* (reqf req)
-            res* (resf res)]
-        (matcher req* res*)))))
+(defmatcher matrix-rule-matcher
+  "matches two values against one another according to a lookup table keyd by the values themselves"
+  [tbl]
+  [matcher (-build-matrix-matching-fn tbl)]
+  #(matcher %1 %2))
 
-(defn weighted-set-matcher
+(defmatcher weighted-set-matcher
   "matches two sets against one another. Takes a table that defines weights of how the matching elemenents match against each other. Adds up all of the weights of the matching items and returns a value no bigger than 1. eg:
 
 ; tbl: {:c++     {:java 1/2 :c# 1/2 :c++ 1/2}
@@ -225,16 +222,13 @@ and so on. In this example, req will be specified as:
 ; also       1 on #{:c++ :c#} #{:java}
 ; also       1 on #{:c++ :c#} #{:c++}
 : but        0 on #{:haskell} #{:java}"
-  [reqf resf tbl]
-  (let [tbl-match (-build-matrix-matching-fn tbl)]
-    (fn [req res]
-      (let [req* (toset (reqf req))
-            res* (toset (resf res))]
-        (->> (for [rq req* rs res*] (tbl-match rq rs))
-             (apply +)
-             max)))))
+  [tbl]
+  [tbl-match (-build-matrix-matching-fn tbl)]
+  #(->> (for [rq %1 rs %2] (tbl-match rq rs))
+        (apply +)
+        max))
 
-(defn weighted-matcher-matcher
+(defmatcher weighted-matcher-matcher
   "allows the ability to combine matchers based on relative weightings. takes parameters in groups of 2 (ie will error out of there are not a multiple of 2 nr of parameters) For every group:
 
 - the first is the matcher (simple-matcher :name :name)
@@ -244,8 +238,7 @@ and so on. In this example, req will be specified as:
 ; (weighted-matcher-matcher (string-matcher :name :name) 1
 ;                           (simple-matcher :age :age) 9)"
   [& matchers]
-  {:pre [(= 0 (mod (count matchers) 2))]}
-  (let [parts (partition 2 matchers)
+  [parts (partition 2 matchers)
         totalweight (apply + (map second parts))
 
         ;; takes one group of the matchers
@@ -262,14 +255,11 @@ and so on. In this example, req will be specified as:
                                  result))))
 
         match-fns (map compute-match-fn parts)]
-    
-    (fn [req res]
-      (->> match-fns
-           (map #(apply % [req res]))
-           (apply +)))))
+  (fn [req res]
+    (->> match-fns
+        (map #(apply % [req res]))
+        (apply +))))
 
-
-                     
 
   
 
