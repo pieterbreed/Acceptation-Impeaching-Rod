@@ -111,7 +111,7 @@ a range is a map with keys :start and :end. Values are anything which supports <
 (defmatcher set-matcher
   "creates sets out of the two collections (reqf req) and (resf res). The result is the proportion of items in %2 that is also in %1"
   [] []
-  #(let [nrres (count %2)]
+  #(let [nrres (count %1)]
      (if (= 0 nrres)
        0
        (-> (clojure.set/intersection (toset %1)
@@ -192,7 +192,7 @@ and so on. In this example, req will be specified as:
                      (apply x []))))))))))
 
 (defmatcher gliding-scale-matcher
-  "matches the difference between (reqf req) and (resf res) and uses that as a lookup into gliding scale function that is specified with the par parameter. par is specified as a table with value -> match entries. Once the table is sorted on value, interpolation is used to compute the function values inbetween the table points"
+  "matches the difference between (reqf req) and (resf res) and uses that as a lookup into gliding scale function that is specified with the par parameter. par is specified as a table with value -> match entries. Once the table is sorted on value, interpolation is used to compute the function values inbetween the table points. See build-gliding-scale-function for more info"
   [par]
   [match-fn (-build-gliding-scale-function par)]
 
@@ -202,9 +202,10 @@ and so on. In this example, req will be specified as:
   "takes a table (map of maps) and gives a fn that can look up a value from the table, provided that the param keys are values in the maps"
   [tbl]
   (fn [req res]
-    (-> tbl
-        req
-        res)))
+    (let [r (-> tbl
+                req
+                res)]
+      (if (nil? r) 0 r))))
 
 (defmatcher matrix-rule-matcher
   "matches two values against one another according to a lookup table keyd by the values themselves"
@@ -228,7 +229,8 @@ and so on. In this example, req will be specified as:
   [tbl-match (-build-matrix-matching-fn tbl)]
   #(->> (for [rq %1 rs %2] (tbl-match rq rs))
         (apply +)
-        max))
+        max
+        (min 1)))
 
 (defmatcher weighted-matcher-matcher
   "allows the ability to combine matchers based on relative weightings. takes parameters in groups of 2 (ie will error out of there are not a multiple of 2 nr of parameters) For every group:
