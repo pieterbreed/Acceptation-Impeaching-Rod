@@ -8,7 +8,7 @@ Download the [standalone jar](https://github.com/downloads/pieterbreed/Acceptati
 
 ## Source code
 
-The main code is in `rules.clj`, but the recruitment example is presented in the [`recruitment.clj`]() file. The examples in the comments in that file can be executed in a repl by running the jar as below and going into the impeaching-rod.recruitment namespace like shown
+The main code is in [`rules.clj`](https://github.com/pieterbreed/Acceptation-Impeaching-Rod/blob/code_apprecation/src/impeaching_rod/rules.clj), but the recruitment example is presented in the [`recruitment.clj`](https://github.com/pieterbreed/Acceptation-Impeaching-Rod/blob/code_apprecation/src/impeaching_rod/recruitment.clj) file. The examples in the comments in that file can be executed in a repl by running the jar as below and going into the impeaching-rod.recruitment namespace like shown
 
 ## Usage
 
