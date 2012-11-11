@@ -167,7 +167,10 @@ and so on. In this example, req will be specified as:
 ; {:x 40  :y 50}]"
   [ranges]
   {:pre [(and (vector? ranges)
-              (every? point? ranges))]}
+              (every? point? ranges)
+              (every? #(and (>= (:y %) 0)
+                            (<= (:y %) 100))
+                      ranges))]}
   (let [rangess (sort-by :x ranges)
         ranges (-> (for [i (range (dec (count rangess)))]
                      (let [p1 (nth ranges i)
@@ -175,21 +178,24 @@ and so on. In this example, req will be specified as:
                      [(:x p1) (:x p2) (-build-linear-function p1 p2)]))
                    vec)]
     (fn [x]
-      (let [frst (-> rangess first)
-            lst (-> rangess last)]
-        (if (<= x (:x frst)) ; smaller than smallest x
-          (:y frst)
-          (let [fnd (some #(if (= x (:x %)) %) rangess)] ; exactly as one of the x's
-            (if fnd
-              (:y fnd)
-              (if (>= x (:x lst)) ; larger than biggest x
-                (:y lst)
-                (-> (filter #(and (> x (first %))
-                                  (< x (second %)))
-                            ranges)
+      (-> 
+       (let [frst (-> rangess first)
+             lst (-> rangess last)]
+         (if (<= x (:x frst)) ; smaller than smallest x
+           (:y frst)
+           (let [fnd (some #(if (= x (:x %)) %) rangess)] ; exactly as one of the x's
+             (if fnd
+               (:y fnd)
+               (if (>= x (:x lst)) ; larger than biggest x
+                 (:y lst)
+                 (-> (filter #(and (> x (first %))
+                                   (< x (second %)))
+                             ranges)
                      first
                      (nth 2)
-                     (apply x []))))))))))
+                     (apply x [])))))))
+       rationalize
+       (/ 100)))))
 
 (defmatcher gliding-scale-matcher
   "matches the difference between (reqf req) and (resf res) and uses that as a lookup into gliding scale function that is specified with the par parameter. par is specified as a table with value -> match entries. Once the table is sorted on value, interpolation is used to compute the function values inbetween the table points. See build-gliding-scale-function for more info"
