@@ -1,6 +1,7 @@
 (ns impeaching-rod.rules
   "holds matching rules builders. each builder takes at least two functions and optionally a builder parameter. The two functions (reqf resf) represent functions that query values from items that are being compare. The optional parameter is a parameter to the builder and makes sense based on the build. Each function returns a function that when given two items to compare (req res), knows how to extract the atributes from the two items (reqf req) and (resf res) and returns a score to indicate their match"
-  (:use [impeaching-rod.common]))
+  (:use clojure.set
+        impeaching-rod.common))
 
 (defmacro defmatcher
   "defines a matcher with the expected, standard matcher behaviour

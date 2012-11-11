@@ -1,5 +1,6 @@
 (ns impeaching-rod.common
-  "common utility functions used in the impeach rod")
+  "common utility functions used in the impeach rod"
+  (:use clojure.pprint))
 
 (def BATCH-SIZE
   "This is the batch size as used by request. The documents in a corpus will be

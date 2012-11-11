@@ -1,35 +1,17 @@
 # impeaching-rod
 
-FIXME: description
+Code appreciation homework
 
 ## Installation
 
-Download from http://example.com/FIXME.
+Download the [standalone jar](https://github.com/downloads/pieterbreed/Acceptation-Impeaching-Rod/impeaching-rod-0.1.0-SNAPSHOT-standalone.jar)
+
+## Source code
+
+The main code is in `rules.clj`, but the recruitment example is presented in the [`recruitment.clj`]() file. The examples in the comments in that file can be executed in a repl by running the jar as below and going into the impeaching-rod.recruitment namespace like shown
 
 ## Usage
 
-FIXME: explanation
+    $ java -jar impeaching-rod-0.1.0-standalone.jar 
+    > (in-ns 'impeaching-rod.recruitment)
 
-    $ java -jar impeaching-rod-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
-
-## License
-
-Copyright © 2012 FIXME
-
-Distributed under the Eclipse Public License, the same as Clojure.
